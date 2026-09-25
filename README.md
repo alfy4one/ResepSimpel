@@ -32,7 +32,7 @@
 Unduh APK terbaru dari halaman [**Releases**](../../releases/latest).
 
 **Minimum Requirements:**
-- Android 13+ (API Level 33)
+- Android 13+ (API Level 33) 
 - ~50MB storage
 
 ## 🛠️ Tech Stack
