@@ -1,6 +1,13 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
+/// Dilempar saat repo belum punya release sama sekali (HTTP 404).
+class BelumRilisException implements Exception {
+  const BelumRilisException();
+  @override
+  String toString() => 'Belum ada rilis di GitHub';
+}
+
 /// Info rilis terbaru dari GitHub Releases.
 class InfoUpdate {
   final String versi; // tag_name tanpa prefix 'v'
@@ -32,6 +39,10 @@ class UpdateService {
           'User-Agent': 'ResepSimpel',
         })
         .timeout(const Duration(seconds: 15));
+    if (res.statusCode == 404) {
+      // Repo belum punya release → bukan error, kondisi wajar.
+      throw const BelumRilisException();
+    }
     if (res.statusCode != 200) {
       throw Exception('Tidak bisa menghubungi GitHub (status ${res.statusCode})');
     }
