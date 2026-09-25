@@ -1,24 +1,26 @@
-// Smoke test: nav 3 tab + perilaku search (update 2026-09-23):
-// daftar dummy selalu tampil (nggak kosong), filter as-you-type TANPA limit.
+// Smoke test: home design + search filter + chip filter + about
+// (update 2026-09-25: data 100 resep Menu.txt, kategori Simpel/Sayuran/Protein/Sehat)
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:app_resep/main.dart';
 
 void main() {
-  testWidgets('app resep: 3 tab, home design, search filter dummy', (tester) async {
+  testWidgets('app resep: home design + search filter', (tester) async {
     await tester.pumpWidget(const AppResep());
 
-    // tab Home: design penuh (header + hero + 4 kategori)
+    // tab Home: design penuh (header + hero + kategori)
     expect(find.text('ResepSimpel'), findsOneWidget);
     expect(find.text('Mau masak apa hari ini?'), findsOneWidget);
     expect(find.text('Resep Pilihan untuk Kamu'), findsOneWidget);
-    expect(find.text('Tempe'), findsOneWidget);
-    expect(find.text('Tahu'), findsOneWidget);
-    // Telur/Sayuran di bawah viewport 600px -> scroll dulu (lazy list)
-    await tester.scrollUntilVisible(find.text('Sayuran'), 200,
-        scrollable: find.byType(Scrollable));
-    expect(find.text('Telur'), findsOneWidget);
+    expect(find.text('Simpel'), findsOneWidget);
     expect(find.text('Sayuran'), findsOneWidget);
+    // Scroll ke bawah: drag ListView utama langsung (halaman home cuma
+    // punya 1 ListView; carousel PageView di dalam ListView ga bisa di-drag
+    // sebagai target scroll-nya sendiri)
+    await tester.drag(find.byType(ListView), const Offset(0, -200));
+    await tester.pumpAndSettle();
+    expect(find.text('Sehat'), findsOneWidget);
+    expect(find.text('Protein'), findsOneWidget);
 
     // 3 tab nav ada
     expect(find.text('Home'), findsOneWidget);
@@ -28,21 +30,15 @@ void main() {
     // tab Search: daftar resep langsung tampil (nggak kosong, tanpa perlu pencet)
     await tester.tap(find.text('Search'));
     await tester.pump();
-    expect(find.text('Sayur Bening Bayam'), findsOneWidget);
-    expect(find.text('Capcay'), findsOneWidget); // item ke-4: dulu kepotong limit 3
+    expect(find.text('Tempe Orek'), findsOneWidget); // item ke-1 data 100 resep
+    expect(find.text('Langkah: Semua'), findsOneWidget);
+    expect(find.text('Bahan tertentu'), findsOneWidget);
 
-    // ngetik "tu" -> semua match, tanpa limit 3
-    await tester.enterText(find.byType(TextField), 'tu');
-    await tester.pump();
-    expect(find.text('Tumis Kangkung'), findsOneWidget);
-    expect(find.text('Tumis Kol'), findsOneWidget); // match ke-4: dulu terpotong
-    expect(find.text('Sayur Asem'), findsNothing); // bukan match
-
-    // lanjut ngetik spesifik -> 1 hasil
+    // ngetik spesifik -> 1 hasil, match NAMA saja
     await tester.enterText(find.byType(TextField), 'kangkung');
     await tester.pump();
     expect(find.text('Tumis Kangkung'), findsOneWidget);
-    expect(find.text('Tumis Wortel Buncis'), findsNothing);
+    expect(find.text('Tempe Orek'), findsNothing);
 
     // query ga nemu -> empty state
     await tester.enterText(find.byType(TextField), 'zzz');
@@ -56,7 +52,7 @@ void main() {
     // masuk Settings
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
-    
+
     // scroll ke item terakhir
     await tester.scrollUntilVisible(find.text('Tentang Aplikasi'), 100,
         scrollable: find.byType(Scrollable));
@@ -71,7 +67,7 @@ void main() {
 
     // About page berhasil dibuka
     expect(find.widgetWithText(AppBar, 'Tentang Aplikasi'), findsOneWidget);
-    
+
     // Scroll + assert nama tim
     final scaffold = find.byType(Scaffold).last;
     await tester.dragUntilVisible(
