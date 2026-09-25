@@ -269,17 +269,18 @@ class _HomePageState extends State<HomePage> {
                   style: TextStyle(color: cBiruPekat, fontSize: 16, fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 16),
-                // Baris 4 kategori (permintaan alf 2026-09-25: dirapatkan
-                // jadi satu baris; tinggi card TIDAK diubah — foto 72 + strip label)
-                Row(
+                // 1 kolom: 4 card kategori full-width ditumpuk (koreksi alf
+                // 2026-09-26: bukan 1 baris horizontal). Tinggi card TIDAK
+                // diubah — foto 72 + strip label.
+                Column(
                   children: [
-                    Expanded(child: _kartuKategori(context, 'Simpel', cBiruTerang)),
-                    const SizedBox(width: 8),
-                    Expanded(child: _kartuKategori(context, 'Sayuran', cLatar)),
-                    const SizedBox(width: 8),
-                    Expanded(child: _kartuKategori(context, 'Protein', cBiruTerang)),
-                    const SizedBox(width: 8),
-                    Expanded(child: _kartuKategori(context, 'Sehat', cLatar)),
+                    _kartuKategori(context, 'Simpel', Icons.restaurant_menu, cBiruTerang),
+                    const SizedBox(height: 8),
+                    _kartuKategori(context, 'Sayuran', Icons.eco, cLatar),
+                    const SizedBox(height: 8),
+                    _kartuKategori(context, 'Protein', Icons.egg_alt, cBiruTerang),
+                    const SizedBox(height: 8),
+                    _kartuKategori(context, 'Sehat', Icons.favorite, cLatar),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -293,9 +294,8 @@ class _HomePageState extends State<HomePage> {
 }
 
 // Kartu kategori bahan (foto real di atas + strip label di bawah).
-// Sejak 2026-09-25: 4 card satu baris -> card sempit, strip label tanpa
-// ikon lingkaran (nama + jumlah saja); tinggi tetap foto 72 + strip.
-Widget _kartuKategori(BuildContext context, String nama, Color warnaFoto) {
+// Card full-width (1 kolom ditumpuk sejak koreksi alf 2026-09-26).
+Widget _kartuKategori(BuildContext context, String nama, IconData ikon, Color warnaFoto) {
   // ikon di area foto: latar biru terang->ikon pekat, latar pucat->ikon vivid
   final ikonFoto = warnaFoto == cBiruTerang ? cBiruPekat : cBiruVivid;
 
@@ -337,17 +337,31 @@ Widget _kartuKategori(BuildContext context, String nama, Color warnaFoto) {
           ),
           Container(
             color: cLatar,
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-            child: Column(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
               children: [
-                Text(
-                  nama,
-                  style: const TextStyle(color: cBiruPekat, fontSize: 11, fontWeight: FontWeight.w700),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: const BoxDecoration(
+                    color: cPutih,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(ikon, size: 16, color: cBiruPekat),
                 ),
-                const SizedBox(height: 2),
-                Text('$jumlah resep', style: const TextStyle(color: cTeksMuted, fontSize: 9)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        nama,
+                        style: const TextStyle(color: cBiruPekat, fontSize: 14, fontWeight: FontWeight.w700),
+                      ),
+                      Text('$jumlah resep', style: const TextStyle(color: cTeksMuted, fontSize: 11)),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
