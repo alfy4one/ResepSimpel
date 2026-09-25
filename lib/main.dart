@@ -302,7 +302,19 @@ Widget _kartuKategori(BuildContext context, String nama, IconData ikon, Color wa
   // Hitung resep per kategori
   final resepList = daftarResep.where((r) => r.kategori == nama).toList();
   final jumlah = resepList.length;
-  final fotoContoh = resepList.isNotEmpty && resepList.first.fotoPath != null ? resepList.first.fotoPath! : null;
+  
+  // Foto contoh: untuk Sayuran, pakai Sayur Bening Bayam (override alf 2026-09-26);
+  // kategori lain pakai resep pertama dari kategorinya.
+  String? fotoContoh;
+  if (nama == 'Sayuran') {
+    final bayam = daftarResep.firstWhere(
+      (r) => r.nama == 'Sayur Bening Bayam',
+      orElse: () => resepList.first,
+    );
+    fotoContoh = bayam.fotoPath;
+  } else {
+    fotoContoh = resepList.isNotEmpty && resepList.first.fotoPath != null ? resepList.first.fotoPath! : null;
+  }
 
   return GestureDetector(
     onTap: () => Navigator.push(
