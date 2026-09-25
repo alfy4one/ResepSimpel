@@ -1,4 +1,14 @@
+import 'dart:async';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'data/resep_data.dart';
+import 'models/resep.dart';
+import 'pages/kategori_list_page.dart';
+import 'pages/resep_detail_page.dart';
+// In-app update: di web pakai stub, di Android/VM pakai versi io (download + install)
+import 'services/apk_installer_stub.dart'
+    if (dart.library.io) 'services/apk_installer_io.dart';
+import 'services/update_service.dart';
 
 void main() => runApp(const AppResep());
 
@@ -92,11 +102,47 @@ class ShellState extends State<Shell> {
 }
 
 // ===== HOME PAGE (design mockup 2026-09-23) =====
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
   @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  late PageController _pageController;
+  Timer? _timer;
+  int _currentPage = 0;
+
+  void _restartTimer() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 4), (timer) {
+      final next = (_currentPage + 1) % 3;
+      _pageController.animateToPage(
+        next,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOut,
+      );
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+    _restartTimer();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final carouselResep = daftarResep.take(3).toList();
     return SafeArea(
       child: Column(
         children: [
@@ -139,51 +185,92 @@ class HomePage extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                // Hero banner
-                Container(
-                  margin: const EdgeInsets.only(top: 16),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: cBiruTerang,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Mau masak apa hari ini?',
-                              style: TextStyle(color: cBiruPekat, fontSize: 18, fontWeight: FontWeight.w700),
+                // Hero banner carousel - pakai 3 resep pertama dengan foto asli
+                SizedBox(
+                  height: 128,
+                  child: PageView.builder(
+                    controller: _pageController,
+                    onPageChanged: (index) {
+                      setState(() => _currentPage = index);
+                      _restartTimer();
+                    },
+                    itemCount: carouselResep.length,
+                    itemBuilder: (context, index) {
+                      final resep = carouselResep[index];
+                      return GestureDetector(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => ResepDetailPage(resep: resep)),
+                        ),
+                        child: Container(
+                          margin: const EdgeInsets.only(top: 16, right: 8),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: cBiruTerang,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        index == 0 ? 'Mau masak apa hari ini?' : index == 1 ? 'Resep cepat & mudah' : 'Masakan rumahan favorit',
+                                        style: const TextStyle(color: cBiruPekat, fontSize: 18, fontWeight: FontWeight.w700),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Flexible(
+                                      child: Text(
+                                        index == 0 ? 'Pilih bahan utama dan temukan resepnya' : index == 1 ? 'Siap dalam 30 menit' : 'Lezat & bergizi',
+                                        style: const TextStyle(color: cBiruPekat, fontSize: 12),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  const SizedBox(height: 16),
+                                  // dot indicators
+                                  Row(
+                                    children: List.generate(carouselResep.length, (i) => Container(
+                                      width: 8,
+                                      height: 8,
+                                      margin: EdgeInsets.only(right: i < carouselResep.length - 1 ? 8 : 0),
+                                      decoration: BoxDecoration(
+                                        color: i == _currentPage ? cBiruPekat : cBiruPekat.withValues(alpha: 0.35),
+                                        shape: BoxShape.circle,
+                                      ),
+                                    )),
+                                  ),
+                                ],
+                              ),
                             ),
-                            const SizedBox(height: 8),
-                            Text('Pilih bahan utama dan temukan resepnya', style: TextStyle(color: cBiruPekat, fontSize: 12)),
-                            const SizedBox(height: 16),
-                            // dot carousel
-                            Row(
-                              children: [
-                                Container(width: 8, height: 8, decoration: const BoxDecoration(color: cBiruPekat, shape: BoxShape.circle)),
-                                const SizedBox(width: 8),
-                                Container(width: 8, height: 8, decoration: BoxDecoration(color: cBiruPekat.withValues(alpha: 0.35), shape: BoxShape.circle)),
-                                const SizedBox(width: 8),
-                                Container(width: 8, height: 8, decoration: BoxDecoration(color: cBiruPekat.withValues(alpha: 0.35), shape: BoxShape.circle)),
-                              ],
+                            // Foto resep asli (1:1 square)
+                            Container(
+                              width: 72,
+                              height: 72,
+                              decoration: BoxDecoration(
+                                color: cBiruVivid,
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              clipBehavior: Clip.antiAlias,
+                              child: resep.fotoPath != null
+                                  ? Image.asset(
+                                      resep.fotoPath!,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) =>
+                                          Icon(Icons.restaurant, size: 32, color: cPutih),
+                                    )
+                                  : Icon(Icons.restaurant, size: 32, color: cPutih),
                             ),
                           ],
                         ),
                       ),
-                      // Foto dummy (aksen vivid 10%)
-                      Container(
-                        width: 96,
-                        height: 96,
-                        decoration: BoxDecoration(
-                          color: cBiruVivid,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: const Icon(Icons.local_dining, size: 34, color: cPutih),
-                      ),
-                    ],
+                      );
+                    },
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -192,19 +279,23 @@ class HomePage extends StatelessWidget {
                   style: TextStyle(color: cBiruPekat, fontSize: 16, fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 16),
-                // Grid 2 kolom: Tempe & Tahu
+                // Grid 2 kolom: Simpel & Sayuran
                 Row(
                   children: [
-                    Expanded(child: _kartuKategori('Tempe', Icons.grain, cBiruTerang, 96)),
+                    Expanded(child: _kartuKategori(context, 'Simpel', Icons.restaurant_menu, cBiruTerang, 72)),
                     const SizedBox(width: 16),
-                    Expanded(child: _kartuKategori('Tahu', Icons.auto_awesome, cLatar, 96)),
+                    Expanded(child: _kartuKategori(context, 'Sayuran', Icons.eco, cLatar, 72)),
                   ],
                 ),
-                const SizedBox(height: 24),
-                // Full-width: Telur & Sayuran
-                _kartuKategori('Telur', Icons.egg_alt, cBiruTerang, 140),
-                const SizedBox(height: 24),
-                _kartuKategori('Sayuran', Icons.eco, cLatar, 140),
+                const SizedBox(height: 16),
+                // Grid 2 kolom: Protein & Sehat
+                Row(
+                  children: [
+                    Expanded(child: _kartuKategori(context, 'Protein', Icons.egg_alt, cBiruTerang, 72)),
+                    const SizedBox(width: 16),
+                    Expanded(child: _kartuKategori(context, 'Sehat', Icons.favorite, cLatar, 72)),
+                  ],
+                ),
                 const SizedBox(height: 16),
               ],
             ),
@@ -215,85 +306,92 @@ class HomePage extends StatelessWidget {
   }
 }
 
-// Kartu kategori bahan (foto dummy di atas + strip label di bawah)
-Widget _kartuKategori(String nama, IconData ikon, Color warnaFoto, double tinggiFoto) {
+// Kartu kategori bahan (foto real di atas + strip label di bawah)
+Widget _kartuKategori(BuildContext context, String nama, IconData ikon, Color warnaFoto, double tinggiFoto) {
   // ikon di area foto: latar biru terang->ikon pekat, latar pucat->ikon vivid
   final ikonFoto = warnaFoto == cBiruTerang ? cBiruPekat : cBiruVivid;
-  return Container(
-    decoration: BoxDecoration(
-      color: cPutih,
-      borderRadius: BorderRadius.circular(18),
-      boxShadow: const [
-        BoxShadow(color: Color(0x10000000), blurRadius: 10, offset: Offset(0, 2)),
-      ],
+  
+  // Hitung resep per kategori
+  final resepList = daftarResep.where((r) => r.kategori == nama).toList();
+  final jumlah = resepList.length;
+  final fotoContoh = resepList.isNotEmpty && resepList.first.fotoPath != null ? resepList.first.fotoPath! : null;
+  
+  return GestureDetector(
+    onTap: () => Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => KategoriListPage(kategori: nama)),
     ),
-    clipBehavior: Clip.antiAlias,
-    child: Column(
-      children: [
-        Container(
-          height: tinggiFoto,
-          color: warnaFoto,
-          alignment: Alignment.center,
-          child: Icon(Icons.local_dining, size: 30, color: ikonFoto),
-        ),
-        Container(
-          color: cLatar,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Row(
-            children: [
-              Container(
-                width: 24,
-                height: 24,
-                decoration: const BoxDecoration(
-                  color: cPutih,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(ikon, size: 16, color: cBiruPekat),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      nama,
-                      style: const TextStyle(color: cBiruPekat, fontSize: 14, fontWeight: FontWeight.w700),
-                    ),
-                    const Text('25 resep', style: TextStyle(color: cTeksMuted, fontSize: 11)),
-                  ],
-                ),
-              ),
-            ],
+    child: Container(
+      decoration: BoxDecoration(
+        color: cPutih,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: const [
+          BoxShadow(color: Color(0x10000000), blurRadius: 10, offset: Offset(0, 2)),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          Container(
+            height: tinggiFoto,
+            color: warnaFoto,
+            alignment: Alignment.center,
+            child: fotoContoh != null
+                ? Image.asset(
+                    fotoContoh,
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    height: double.infinity,
+                    errorBuilder: (context, error, stackTrace) =>
+                        Icon(Icons.restaurant, size: 28, color: ikonFoto),
+                  )
+                : Icon(Icons.restaurant, size: 28, color: ikonFoto),
           ),
-        ),
-      ],
+          Container(
+            color: cLatar,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: const BoxDecoration(
+                    color: cPutih,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(ikon, size: 16, color: cBiruPekat),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        nama,
+                        style: const TextStyle(color: cBiruPekat, fontSize: 14, fontWeight: FontWeight.w700),
+                      ),
+                      Text('$jumlah resep', style: const TextStyle(color: cTeksMuted, fontSize: 11)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     ),
   );
 }
 
-// ===== SEARCH PAGE (sesuai design) =====
+// ===== SEARCH PAGE (mirip KategoriListPage) =====
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
 
   @override
-  SearchPageState createState() => SearchPageState();
+  State<SearchPage> createState() => _SearchPageState();
 }
 
-// Foto dummy (placeholder) — nanti diganti foto resep beneran
-Widget _fotoDummy(int index) {
-  final latar = index.isEven ? cLatar : cBiruTerang;
-  return Container(
-    width: 64,
-    height: 64,
-    decoration: BoxDecoration(
-      color: latar,
-      borderRadius: BorderRadius.circular(14),
-    ),
-    child: Icon(Icons.local_dining, size: 26, color: latar == cLatar ? cBiruVivid : cBiruPekat),
-  );
-}
-
-class SearchPageState extends State<SearchPage> {
+class _SearchPageState extends State<SearchPage> {
   final _ctrl = TextEditingController();
   String _query = '';
 
@@ -303,16 +401,18 @@ class SearchPageState extends State<SearchPage> {
     super.dispose();
   }
 
-  // database dummy: query kosong -> semua resep; query isi -> semua yang cocok
-  List<String> _hasil() {
+  List<Resep> _filteredResep() {
     final q = _query.trim().toLowerCase();
-    if (q.isEmpty) return resep;
-    return resep.where((r) => r.toLowerCase().contains(q)).toList();
+    if (q.isEmpty) return daftarResep;
+    return daftarResep.where((r) => 
+      r.nama.toLowerCase().contains(q) ||
+      r.bahan.any((b) => b.toLowerCase().contains(q))
+    ).toList();
   }
 
   @override
   Widget build(BuildContext context) {
-    final hasil = _hasil();
+    final hasil = _filteredResep();
     return SafeArea(
       child: Column(
         children: [
@@ -339,7 +439,7 @@ class SearchPageState extends State<SearchPage> {
                       onChanged: (v) => setState(() => _query = v),
                       style: const TextStyle(color: cTeksUtama),
                       decoration: const InputDecoration(
-                        hintText: 'Cari...',
+                        hintText: 'Cari resep...',
                         hintStyle: TextStyle(color: cTeksMuted),
                         border: InputBorder.none,
                         isDense: true,
@@ -350,52 +450,118 @@ class SearchPageState extends State<SearchPage> {
               ),
             ),
           ),
-          // Kartu hasil
+          // Hasil list
           Expanded(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: cPutih,
-                  borderRadius: BorderRadius.circular(18),
-                  boxShadow: const [
-                    BoxShadow(color: Color(0x10000000), blurRadius: 10, offset: Offset(0, 2)),
-                  ],
-                ),
-                child: hasil.isEmpty
-                    ? const Center(
-                        child: Text(
-                          'Tidak ada resep ditemukan',
-                          style: TextStyle(color: cTeksMuted),
-                        ),
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        itemCount: hasil.length,
-                        itemBuilder: (context, i) => Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          child: Row(
-                            children: [
-                              _fotoDummy(i),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Text(
-                                  hasil[i],
-                                  style: const TextStyle(
-                                    color: cTeksUtama,
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+              child: hasil.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'Tidak ada resep ditemukan',
+                        style: TextStyle(color: cTeksMuted, fontSize: 16),
                       ),
-              ),
+                    )
+                  : ListView.builder(
+                      itemCount: hasil.length,
+                      itemBuilder: (context, index) {
+                        final resep = hasil[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: _buildKartuResep(context, resep),
+                        );
+                      },
+                    ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // Reuse card from KategoriListPage
+  Widget _buildKartuResep(BuildContext context, Resep resep) {
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => ResepDetailPage(resep: resep)),
+      ),
+      child: Container(
+        height: 120,
+        decoration: BoxDecoration(
+          color: cPutih,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: const [
+            BoxShadow(color: Color(0x10000000), blurRadius: 10, offset: Offset(0, 2)),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Row(
+          children: [
+            // Foto resep
+            Container(
+              width: 120,
+              height: 120,
+              color: cBiruTerang,
+              child: resep.fotoPath != null
+                  ? Hero(
+                      tag: 'resep-${resep.nama}',
+                      child: Image.asset(
+                        resep.fotoPath!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const Icon(Icons.restaurant, size: 40, color: cBiruPekat),
+                      ),
+                    )
+                  : const Icon(Icons.restaurant, size: 40, color: cBiruPekat),
+            ),
+            // Info resep
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      resep.nama,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: cTeksUtama,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(Icons.restaurant_menu, size: 14, color: cTeksMuted),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            '${resep.bahan.length} bahan',
+                            style: const TextStyle(fontSize: 12, color: cTeksMuted),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Icon(Icons.list_alt, size: 14, color: cTeksMuted),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            '${resep.langkah.length} langkah',
+                            style: const TextStyle(fontSize: 12, color: cTeksMuted),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -447,9 +613,14 @@ class SettingsPage extends StatelessWidget {
               const SizedBox(height: 24),
               _labelSeksi('Versi'),
               const SizedBox(height: 8),
-              _itemSettings(Icons.info_outline, 'Versi Aplikasi', trailing: const Text('v1.0', style: TextStyle(color: cTeksMuted, fontSize: 15))),
+              _itemSettings(Icons.info_outline, 'Versi Aplikasi', trailing: Text('v${UpdateService.versiSaatIni}', style: const TextStyle(color: cTeksMuted, fontSize: 15))),
               const SizedBox(height: 8),
-              _itemSettings(Icons.download_outlined, 'Periksa Pembaruan', trailing: _tombolOutline('Cek Pembaruan')),
+              _itemSettings(
+                Icons.download_outlined,
+                'Periksa Pembaruan',
+                trailing: _tombolOutline('Cek Pembaruan'),
+                onTap: () => _periksaUpdate(context),
+              ),
               const SizedBox(height: 32),
               _labelSeksi('Bantuan & Informasi'),
               const SizedBox(height: 8),
@@ -468,6 +639,168 @@ class SettingsPage extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+// ===== ALUR IN-APP UPDATE (cek GitHub → dialog changelog → download → install) =====
+Future<void> _periksaUpdate(BuildContext context) async {
+  final messenger = ScaffoldMessenger.of(context);
+  final navigator = Navigator.of(context);
+  navigator.push(DialogRoute<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => const AlertDialog(
+      title: Text('Memeriksa pembaruan...'),
+      content: SizedBox(
+        width: 28,
+        height: 28,
+        child: CircularProgressIndicator(strokeWidth: 2.5),
+      ),
+    ),
+  ));
+  try {
+    final info = await UpdateService.cekUpdate();
+    navigator.pop();
+    if (!UpdateService.adaUpdate(info)) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Sudah versi terbaru (v${UpdateService.versiSaatIni})')),
+      );
+      return;
+    }
+    await navigator.push(
+      MaterialPageRoute(builder: (_) => _DialogUpdate(info)),
+    );
+  } catch (e) {
+    navigator.pop();
+    messenger.showSnackBar(SnackBar(content: Text('Gagal memeriksa: $e')));
+  }
+}
+
+/// Dialog info update + changelog dari field `body` release.
+class _DialogUpdate extends StatelessWidget {
+  final InfoUpdate info;
+  const _DialogUpdate(this.info);
+
+  @override
+  Widget build(BuildContext context) {
+    final changelog = info.changelog?.trim() ?? '';
+    return AlertDialog(
+      title: const Text('Pembaruan tersedia',
+          style: TextStyle(fontWeight: FontWeight.w700)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Versi baru: v${info.versi}'),
+          if (changelog.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            const Text('Catatan rilis', style: TextStyle(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 8),
+            Flexible(
+              child: SingleChildScrollView(
+                child: Text(changelog,
+                    style: const TextStyle(fontSize: 14, color: cTeksUtama)),
+              ),
+            ),
+          ],
+          if (kIsWeb) ...[
+            const SizedBox(height: 16),
+            const Text('Download & install pembaruan hanya tersedia di Android.',
+                style: TextStyle(fontSize: 12, color: cTeksMuted)),
+          ] else if (info.apkUrl == null) ...[
+            const SizedBox(height: 16),
+            const Text('Belum ada APK di rilis ini.',
+                style: TextStyle(fontSize: 12, color: cTeksMuted)),
+          ],
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Nanti saja'),
+        ),
+        if (!kIsWeb && info.apkUrl != null)
+          FilledButton(
+            style:
+                FilledButton.styleFrom(backgroundColor: cBiruVivid, foregroundColor: cPutih),
+            onPressed: () {
+              final navigator = Navigator.of(context);
+              navigator.pop();
+              navigator.push(
+                  MaterialPageRoute(builder: (_) => _DialogUnduh(info.apkUrl!)));
+            },
+            child: const Text('Download & Install'),
+          ),
+      ],
+    );
+  }
+}
+
+/// Dialog progres download APK, lalu trigger install (ACTION_VIEW).
+class _DialogUnduh extends StatefulWidget {
+  final String url;
+  const _DialogUnduh(this.url);
+
+  @override
+  State<_DialogUnduh> createState() => _DialogUnduhState();
+}
+
+class _DialogUnduhState extends State<_DialogUnduh> {
+  double _progres = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _unduh();
+  }
+
+  Future<void> _unduh() async {
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final path = await ApkInstaller.unduh(widget.url,
+          onProgress: (p) {
+        if (mounted) setState(() => _progres = p.clamp(0.0, 1.0));
+      });
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(content: Text('APK siap, membuka installer...')),
+      );
+      navigator.pop();
+      await ApkInstaller.pasang(path);
+    } on UnsupportedError {
+      if (!mounted) return;
+      navigator.pop();
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Update in-app hanya tersedia di Android.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      navigator.pop();
+      messenger.showSnackBar(SnackBar(content: Text('Gagal download: $e')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Mengunduh APK...',
+          style: TextStyle(fontWeight: FontWeight.w700)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          LinearProgressIndicator(minHeight: 6, value: _progres),
+          const SizedBox(height: 8),
+          Text('(${(_progres * 100).round()}%)',
+              style: const TextStyle(fontSize: 12, color: cTeksMuted)),
+          const SizedBox(height: 8),
+          const Text(
+            'Setelah selesai, instalernya akan muncul otomatis di HP.',
+            style: TextStyle(fontSize: 12, color: cTeksMuted),
+          ),
+        ],
+      ),
     );
   }
 }
