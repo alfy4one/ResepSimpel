@@ -372,6 +372,54 @@ Widget _kartuKategori(BuildContext context, String nama, IconData ikon, Color wa
   );
 }
 
+// ===== FILTER + SORT SEARCH (fungsi murni, gampang di-unit-test) =====
+List<Resep> filterResep({
+  required List<Resep> semua,
+  String query = '',
+  String kategori = 'Semua',
+  String bahan = '',
+  int? maxLangkah,
+  int? maxBahan,
+  String sortLangkah = 'semua', // 'semua' | 'desc' | 'asc'
+  String sortBahan = 'semua',
+}) {
+  Iterable<Resep> hasil = semua;
+  if (kategori != 'Semua') {
+    hasil = hasil.where((r) => r.kategori == kategori);
+  }
+  if (query.isNotEmpty) {
+    // Sesuai keputusan alf: kotak search match NAMA resep saja, jangan masuk
+    // ke daftar bahan (mis. "ayam" tidak boleh menonjolkan "Tempe Telur Dadar"
+    // cuma karena bahannya ada "telur ayam").
+    final q = query.trim().toLowerCase();
+    hasil = hasil.where((r) => r.nama.toLowerCase().contains(q));
+  }
+  if (bahan.isNotEmpty) {
+    final b = bahan.trim().toLowerCase();
+    hasil = hasil.where((r) => r.bahan.any((x) => x.toLowerCase().contains(b)));
+  }
+  if (maxLangkah != null) {
+    hasil = hasil.where((r) => r.langkah.length <= maxLangkah);
+  }
+  if (maxBahan != null) {
+    hasil = hasil.where((r) => r.bahan.length <= maxBahan);
+  }
+  // Urutan: maksimal satu aktif (langkah atau bahan)
+  final list = hasil.toList();
+  if (sortLangkah != 'semua') {
+    final desc = sortLangkah == 'desc';
+    list.sort((a, b) => desc
+        ? b.langkah.length.compareTo(a.langkah.length)
+        : a.langkah.length.compareTo(b.langkah.length));
+  } else if (sortBahan != 'semua') {
+    final desc = sortBahan == 'desc';
+    list.sort((a, b) => desc
+        ? b.bahan.length.compareTo(a.bahan.length)
+        : a.bahan.length.compareTo(b.bahan.length));
+  }
+  return list;
+}
+
 // ===== SEARCH PAGE (mirip KategoriListPage) =====
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
@@ -384,6 +432,11 @@ class _SearchPageState extends State<SearchPage> {
   final _ctrl = TextEditingController();
   String _query = '';
   String _kategori = 'Semua';
+  String _sortLangkah = 'semua'; // 'semua' | 'desc' | 'asc'
+  int? _maxLangkah;
+  String _sortBahan = 'semua';
+  int? _maxBahan;
+  String _bahan = ''; // filter bahan tertentu (eksplisit dari chip)
 
   static const _kategoris = ['Semua', 'Simpel', 'Sayuran', 'Protein', 'Sehat'];
 
@@ -393,23 +446,28 @@ class _SearchPageState extends State<SearchPage> {
     super.dispose();
   }
 
-  List<Resep> _filteredResep() {
-    final q = _query.trim().toLowerCase();
-    if (q.isEmpty) return daftarResep;
-    // Sesuai keputusan alf: match NAMA resep saja, jangan masuk ke daftar bahan
-    // (mis. search "ayam" tidak boleh menonjolkan "Tempe Telur Dadar"
-    // cuma karena bahannya ada "telur ayam").
-    return daftarResep
-        .where((r) => r.nama.toLowerCase().contains(q))
-        .where((r) => _kategori == 'Semua' || r.kategori == _kategori)
-        .toList();
+  List<Resep> _filteredResep() => filterResep(
+        semua: daftarResep,
+        query: _query,
+        kategori: _kategori,
+        bahan: _bahan,
+        maxLangkah: _maxLangkah,
+        maxBahan: _maxBahan,
+        sortLangkah: _sortLangkah,
+        sortBahan: _sortBahan,
+      );
+
+  String _labelAngka(String judul, String sort, int? max) {
+    if (max != null) return '$judul \u2264 $max';
+    if (sort == 'desc') return 'Terbanyak ke tersedikit';
+    if (sort == 'asc') return 'Tersedikit ke terbanyak';
+    return '$judul: Semua';
   }
 
-  // Chip filter kategori (Semua + 4 kategori)
-  Widget _chipFilter(String kategori) {
-    final aktif = _kategori == kategori;
+  // Chip filter (kategori + langkah/bahan/bahan tertentu)
+  Widget _chip(String label, {bool aktif = false, required VoidCallback onTap}) {
     return GestureDetector(
-      onTap: () => setState(() => _kategori = kategori),
+      onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         margin: const EdgeInsets.only(right: 8),
@@ -422,7 +480,7 @@ class _SearchPageState extends State<SearchPage> {
           ],
         ),
         child: Text(
-          kategori,
+          label,
           style: TextStyle(
             color: aktif ? cPutih : cTeksMuted,
             fontSize: 12,
@@ -481,7 +539,65 @@ class _SearchPageState extends State<SearchPage> {
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 children: [
-                  for (final k in _kategoris) _chipFilter(k),
+                  for (final k in _kategoris)
+                    _chip(k,
+                        aktif: _kategori == k,
+                        onTap: () => setState(() => _kategori = k)),
+                ],
+              ),
+            ),
+          ),
+          // Filter: langkah / bahan / bahan tertentu
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: SizedBox(
+              height: 36,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: [
+                  _chip(
+                    _labelAngka('Langkah', _sortLangkah, _maxLangkah),
+                    aktif: _sortLangkah != 'semua' || _maxLangkah != null,
+                    onTap: () => showDialog(
+                      context: context,
+                      builder: (_) => _DialogAngka(
+                        judul: 'Urutan jumlah langkah',
+                        sortAwal: _sortLangkah,
+                        maxAwal: _maxLangkah,
+                        onApply: (s, m) => setState(() {
+                          _sortLangkah = s;
+                          _maxLangkah = m;
+                        }),
+                      ),
+                    ),
+                  ),
+                  _chip(
+                    _labelAngka('Bahan', _sortBahan, _maxBahan),
+                    aktif: _sortBahan != 'semua' || _maxBahan != null,
+                    onTap: () => showDialog(
+                      context: context,
+                      builder: (_) => _DialogAngka(
+                        judul: 'Urutan jumlah bahan',
+                        sortAwal: _sortBahan,
+                        maxAwal: _maxBahan,
+                        onApply: (s, m) => setState(() {
+                          _sortBahan = s;
+                          _maxBahan = m;
+                        }),
+                      ),
+                    ),
+                  ),
+                  _chip(
+                    _bahan.isEmpty ? 'Bahan tertentu' : 'Bahan: $_bahan',
+                    aktif: _bahan.isNotEmpty,
+                    onTap: () => showDialog(
+                      context: context,
+                      builder: (_) => _DialogBahanKhusus(
+                        nilaiAwal: _bahan,
+                        onApply: (v) => setState(() => _bahan = v),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -599,6 +715,212 @@ class _SearchPageState extends State<SearchPage> {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ===== DIALOG FILTER ANGKA (terbanyak→terseikit / ≤ N) =====
+class _DialogAngka extends StatefulWidget {
+  final String judul;
+  final String sortAwal; // 'semua' | 'desc' | 'asc'
+  final int? maxAwal;
+  final void Function(String sort, int? max) onApply;
+  const _DialogAngka({
+    required this.judul,
+    required this.sortAwal,
+    this.maxAwal,
+    required this.onApply,
+  });
+
+  @override
+  State<_DialogAngka> createState() => _DialogAngkaState();
+}
+
+class _DialogAngkaState extends State<_DialogAngka> {
+  String _mode = 'semua'; // 'semua' | 'desc' | 'asc' | 'max'
+  int? _max;
+  final _ctrl = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _max = widget.maxAwal;
+    _mode = _max != null ? 'max' : widget.sortAwal;
+    _ctrl.text = _max?.toString() ?? '';
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  Widget _opsi(String nilai, String label) {
+    return RadioListTile<String>(
+      value: nilai,
+      title: Text(label, style: const TextStyle(fontSize: 14, color: cTeksUtama)),
+      dense: true,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.judul,
+          style: const TextStyle(fontWeight: FontWeight.w700, color: cTeksUtama)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          RadioGroup<String>(
+            groupValue: _mode,
+            onChanged: (v) => setState(() {
+              _mode = v!;
+              if (v != 'max') _ctrl.clear();
+            }),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _opsi('semua', 'Semua (tanpa filter)'),
+                _opsi('desc', 'Terbanyak ke tersedikit'),
+                _opsi('asc', 'Tersedikit ke terbanyak'),
+                _opsi('max', 'Paling banyak...'),
+              ],
+            ),
+          ),
+          if (_mode == 'max')
+            Padding(
+              padding: const EdgeInsets.only(top: 8, left: 24),
+              child: Row(
+                children: [
+                  const Text('Maks', style: TextStyle(fontSize: 14, color: cTeksMuted)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextField(
+                      controller: _ctrl,
+                      keyboardType: TextInputType.number,
+                      style: const TextStyle(color: cTeksUtama),
+                      decoration: const InputDecoration(
+                        hintText: 'mis. 6',
+                        hintStyle: TextStyle(color: cTeksMuted),
+                        isDense: true,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Batal'),
+        ),
+        FilledButton(
+          style:
+              FilledButton.styleFrom(backgroundColor: cBiruVivid, foregroundColor: cPutih),
+          onPressed: () {
+            int? m;
+            if (_mode == 'max') {
+              m = int.tryParse(_ctrl.text.trim());
+              if (m != null && m <= 0) m = null; // angka tidak valid → anggap tanpa filter
+            }
+            widget.onApply(_mode == 'max' ? 'semua' : _mode, m);
+            Navigator.pop(context);
+          },
+          child: const Text('Terapkan'),
+        ),
+      ],
+    );
+  }
+}
+
+// ===== DIALOG FILTER BAHAN TERTENTU =====
+class _DialogBahanKhusus extends StatefulWidget {
+  final String nilaiAwal;
+  final ValueChanged<String> onApply;
+  const _DialogBahanKhusus({required this.nilaiAwal, required this.onApply});
+
+  @override
+  State<_DialogBahanKhusus> createState() => _DialogBahanKhususState();
+}
+
+class _DialogBahanKhususState extends State<_DialogBahanKhusus> {
+  final TextEditingController _ctrl = TextEditingController();
+  bool _pakai = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _pakai = widget.nilaiAwal.isNotEmpty;
+    _ctrl.text = widget.nilaiAwal;
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Bahan tertentu',
+          style: TextStyle(fontWeight: FontWeight.w700, color: cTeksUtama)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          RadioGroup<bool>(
+            groupValue: _pakai,
+            onChanged: (v) => setState(() => _pakai = v!),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                RadioListTile<bool>(
+                  value: true,
+                  title: const Text('Tampilkan resep yang memuat bahan tertentu',
+                      style: TextStyle(fontSize: 14, color: cTeksUtama)),
+                  dense: true,
+                ),
+                RadioListTile<bool>(
+                  value: false,
+                  title: const Text('Semua (tanpa filter)',
+                      style: TextStyle(fontSize: 14, color: cTeksUtama)),
+                  dense: true,
+                ),
+              ],
+            ),
+          ),
+          if (_pakai)
+            Padding(
+              padding: const EdgeInsets.only(top: 8, left: 24),
+              child: TextField(
+                controller: _ctrl,
+                style: const TextStyle(color: cTeksUtama),
+                decoration: const InputDecoration(
+                  hintText: 'mis. telur',
+                  hintStyle: TextStyle(color: cTeksMuted),
+                  isDense: true,
+                ),
+              ),
+            ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Batal'),
+        ),
+        FilledButton(
+          style:
+              FilledButton.styleFrom(backgroundColor: cBiruVivid, foregroundColor: cPutih),
+          onPressed: () {
+            widget.onApply(_pakai ? _ctrl.text.trim() : '');
+            Navigator.pop(context);
+          },
+          child: const Text('Terapkan'),
+        ),
+      ],
     );
   }
 }
@@ -923,6 +1245,7 @@ class AboutPage extends StatelessWidget {
   static const _fitur = [
     'Menelusuri resep berdasarkan kategori (Simpel, Sayuran, Protein, Sehat)',
     'Pencarian resep secara langsung berdasarkan nama (real-time)',
+    'Filter hasil berdasarkan kategori, jumlah langkah, jumlah bahan, dan bahan tertentu',
     'Koleksi 100 resep lengkap dengan foto, bahan, dan langkah memasak',
     'Informasi versi aplikasi dan pemeriksaan pembaruan',
   ];
