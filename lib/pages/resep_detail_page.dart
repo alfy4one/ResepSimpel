@@ -24,6 +24,22 @@ class ResepDetailPage extends StatelessWidget {
             expandedHeight: 280,
             pinned: true,
             backgroundColor: cBiruPekat,
+            leading: GestureDetector(
+              onTap: () => Navigator.of(context).maybePop(),
+              child: Padding(
+                padding: const EdgeInsetsDirectional.fromSTEB(4, 4, 8, 4),
+                child: Icon(
+                  Icons.arrow_back_ios_new,
+                  size: 24,
+                  color: cPutih,
+                  // Panah kembali: dasar putih + bayangan hitam biar keliatan
+                  // di atas foto mana pun (putih polos bisa nyamar di photo terang)
+                  shadows: const [
+                    Shadow(color: Colors.black54, blurRadius: 4, offset: Offset(1.5, 1.5)),
+                  ],
+                ),
+              ),
+            ),
             flexibleSpace: FlexibleSpaceBar(
               title: Text(
                 resep.nama,
