@@ -12,17 +12,6 @@ import 'services/update_service.dart';
 
 void main() => runApp(const AppResep());
 
-// 25 resep sayur (nama dari file foto di ~/Downloads/foto/)
-const List<String> resep = [
-  'Sayur Bening Bayam', 'Tumis Kangkung', 'Sayur Asem', 'Capcay',
-  'Tumis Wortel Buncis', 'Sayur Lodeh', 'Tumis Sawi Hijau', 'Tumis Kol',
-  'Tumis Tauge', 'Sayur Sop', 'Tumis Pare', 'Tumis Labu Siam',
-  'Tumis Genjer', 'Tumis Daun Singkong', 'Tumis Kacang Panjang',
-  'Sayur Bening Oyong', 'Tumis Brokoli', 'Tumis Kembang Kol',
-  'Sayur Bobor Bayam', 'Tumis Terong', 'Tumis Pakcoy', 'Tumis Jagung Muda',
-  'Sayur Bening Labu Siam', 'Tumis Rebung', 'Tumis Tahu Sayuran',
-];
-
 // Palet app — palet biru Material (swatch 2026-09-24), aturan:
 //  Warna 60-30-10:
 //   60%  #E3F2FD + putih  (latar + card, permukaan dominan)
@@ -404,10 +393,12 @@ class _SearchPageState extends State<SearchPage> {
   List<Resep> _filteredResep() {
     final q = _query.trim().toLowerCase();
     if (q.isEmpty) return daftarResep;
-    return daftarResep.where((r) => 
-      r.nama.toLowerCase().contains(q) ||
-      r.bahan.any((b) => b.toLowerCase().contains(q))
-    ).toList();
+    // Sesuai keputusan alf: match NAMA resep saja, jangan masuk ke daftar bahan
+    // (mis. search "ayam" tidak boleh menonjolkan "Tempe Telur Dadar"
+    // cuma karena bahannya ada "telur ayam").
+    return daftarResep
+        .where((r) => r.nama.toLowerCase().contains(q))
+        .toList();
   }
 
   @override
@@ -877,16 +868,17 @@ class AboutPage extends StatelessWidget {
   const AboutPage({super.key});
 
   static const _deskripsi =
-      'ResepSimpel adalah aplikasi resep yang memuat 25 resep masakan '
-      'sayur Indonesia, disusun untuk membantu pengguna mencari dan '
-      'menelusuri hidangan sayur sebagai pilihan menu makanan sehat. '
-      'Aplikasi ini dibangun dengan framework Flutter dan dirancang '
-      'berbasis kategori bahan serta fitur pencarian resep secara langsung.';
+      'ResepSimpel adalah aplikasi resep yang memuat 100 resep masakan '
+      'Nusantara (tempe, tahu, telur, dan sayur), disusun untuk membantu '
+      'pengguna mencari dan menelusuri hidangan rumahan sebagai pilihan '
+      'menu makanan sehari-hari. Aplikasi ini dibangun dengan framework '
+      'Flutter dan dirancang berbasis kategori serta fitur pencarian '
+      'resep secara langsung.';
 
   static const _fitur = [
-    'Menelusuri resep berdasarkan kategori bahan (tempe, tahu, telur, sayur)',
+    'Menelusuri resep berdasarkan kategori (Simpel, Sayuran, Protein, Sehat)',
     'Pencarian resep secara langsung berdasarkan nama (real-time)',
-    'Koleksi 25 resep sayur Indonesia lengkap dengan foto',
+    'Koleksi 100 resep lengkap dengan foto, bahan, dan langkah memasak',
     'Informasi versi aplikasi dan pemeriksaan pembaruan',
   ];
 
