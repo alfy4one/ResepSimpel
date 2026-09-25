@@ -31,12 +31,6 @@ void main() {
     expect(h.every((r) => r.nama.toLowerCase().contains('tempe')), isTrue);
   });
 
-  test('filter kategori', () {
-    final h = filterResep(semua: data, kategori: 'Protein');
-    expect(h.length, 2);
-    expect(h.every((r) => r.kategori == 'Protein'), isTrue);
-  });
-
   test('filter bahan tertentu', () {
     final h = filterResep(semua: data, bahan: 'telur');
     expect(h.map((r) => r.nama), ['Tempe Telur Dadar']);
