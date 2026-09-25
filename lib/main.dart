@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'data/resep_data.dart';
@@ -268,21 +269,17 @@ class _HomePageState extends State<HomePage> {
                   style: TextStyle(color: cBiruPekat, fontSize: 16, fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 16),
-                // Grid 2 kolom: Simpel & Sayuran
+                // Baris 4 kategori (permintaan alf 2026-09-25: dirapatkan
+                // jadi satu baris; tinggi card TIDAK diubah — foto 72 + strip label)
                 Row(
                   children: [
-                    Expanded(child: _kartuKategori(context, 'Simpel', Icons.restaurant_menu, cBiruTerang, 72)),
-                    const SizedBox(width: 16),
-                    Expanded(child: _kartuKategori(context, 'Sayuran', Icons.eco, cLatar, 72)),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                // Grid 2 kolom: Protein & Sehat
-                Row(
-                  children: [
-                    Expanded(child: _kartuKategori(context, 'Protein', Icons.egg_alt, cBiruTerang, 72)),
-                    const SizedBox(width: 16),
-                    Expanded(child: _kartuKategori(context, 'Sehat', Icons.favorite, cLatar, 72)),
+                    Expanded(child: _kartuKategori(context, 'Simpel', cBiruTerang)),
+                    const SizedBox(width: 8),
+                    Expanded(child: _kartuKategori(context, 'Sayuran', cLatar)),
+                    const SizedBox(width: 8),
+                    Expanded(child: _kartuKategori(context, 'Protein', cBiruTerang)),
+                    const SizedBox(width: 8),
+                    Expanded(child: _kartuKategori(context, 'Sehat', cLatar)),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -295,16 +292,18 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-// Kartu kategori bahan (foto real di atas + strip label di bawah)
-Widget _kartuKategori(BuildContext context, String nama, IconData ikon, Color warnaFoto, double tinggiFoto) {
+// Kartu kategori bahan (foto real di atas + strip label di bawah).
+// Sejak 2026-09-25: 4 card satu baris -> card sempit, strip label tanpa
+// ikon lingkaran (nama + jumlah saja); tinggi tetap foto 72 + strip.
+Widget _kartuKategori(BuildContext context, String nama, Color warnaFoto) {
   // ikon di area foto: latar biru terang->ikon pekat, latar pucat->ikon vivid
   final ikonFoto = warnaFoto == cBiruTerang ? cBiruPekat : cBiruVivid;
-  
+
   // Hitung resep per kategori
   final resepList = daftarResep.where((r) => r.kategori == nama).toList();
   final jumlah = resepList.length;
   final fotoContoh = resepList.isNotEmpty && resepList.first.fotoPath != null ? resepList.first.fotoPath! : null;
-  
+
   return GestureDetector(
     onTap: () => Navigator.push(
       context,
@@ -322,7 +321,7 @@ Widget _kartuKategori(BuildContext context, String nama, IconData ikon, Color wa
       child: Column(
         children: [
           Container(
-            height: tinggiFoto,
+            height: 72,
             color: warnaFoto,
             alignment: Alignment.center,
             child: fotoContoh != null
@@ -338,31 +337,17 @@ Widget _kartuKategori(BuildContext context, String nama, IconData ikon, Color wa
           ),
           Container(
             color: cLatar,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            child: Column(
               children: [
-                Container(
-                  width: 24,
-                  height: 24,
-                  decoration: const BoxDecoration(
-                    color: cPutih,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(ikon, size: 16, color: cBiruPekat),
+                Text(
+                  nama,
+                  style: const TextStyle(color: cBiruPekat, fontSize: 11, fontWeight: FontWeight.w700),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        nama,
-                        style: const TextStyle(color: cBiruPekat, fontSize: 14, fontWeight: FontWeight.w700),
-                      ),
-                      Text('$jumlah resep', style: const TextStyle(color: cTeksMuted, fontSize: 11)),
-                    ],
-                  ),
-                ),
+                const SizedBox(height: 2),
+                Text('$jumlah resep', style: const TextStyle(color: cTeksMuted, fontSize: 9)),
               ],
             ),
           ),
@@ -376,7 +361,6 @@ Widget _kartuKategori(BuildContext context, String nama, IconData ikon, Color wa
 List<Resep> filterResep({
   required List<Resep> semua,
   String query = '',
-  String kategori = 'Semua',
   String bahan = '',
   int? maxLangkah,
   int? maxBahan,
@@ -384,9 +368,6 @@ List<Resep> filterResep({
   String sortBahan = 'semua',
 }) {
   Iterable<Resep> hasil = semua;
-  if (kategori != 'Semua') {
-    hasil = hasil.where((r) => r.kategori == kategori);
-  }
   if (query.isNotEmpty) {
     // Sesuai keputusan alf: kotak search match NAMA resep saja, jangan masuk
     // ke daftar bahan (mis. "ayam" tidak boleh menonjolkan "Tempe Telur Dadar"
@@ -431,14 +412,11 @@ class SearchPage extends StatefulWidget {
 class _SearchPageState extends State<SearchPage> {
   final _ctrl = TextEditingController();
   String _query = '';
-  String _kategori = 'Semua';
   String _sortLangkah = 'semua'; // 'semua' | 'desc' | 'asc'
   int? _maxLangkah;
   String _sortBahan = 'semua';
   int? _maxBahan;
   String _bahan = ''; // filter bahan tertentu (eksplisit dari chip)
-
-  static const _kategoris = ['Semua', 'Simpel', 'Sayuran', 'Protein', 'Sehat'];
 
   @override
   void dispose() {
@@ -449,7 +427,6 @@ class _SearchPageState extends State<SearchPage> {
   List<Resep> _filteredResep() => filterResep(
         semua: daftarResep,
         query: _query,
-        kategori: _kategori,
         bahan: _bahan,
         maxLangkah: _maxLangkah,
         maxBahan: _maxBahan,
@@ -531,25 +508,11 @@ class _SearchPageState extends State<SearchPage> {
               ),
             ),
           ),
-          // Filter kategori
+          // Filter: langkah / bahan / bahan tertentu
+          // (baris chip kategori Simpel/Sayuran/Protein/Sehat dihapus
+          // sesuai keputusan alf 2026-09-25 — kategori udah di card home)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-            child: SizedBox(
-              height: 36,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: [
-                  for (final k in _kategoris)
-                    _chip(k,
-                        aktif: _kategori == k,
-                        onTap: () => setState(() => _kategori = k)),
-                ],
-              ),
-            ),
-          ),
-          // Filter: langkah / bahan / bahan tertentu
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
             child: SizedBox(
               height: 36,
               child: ListView(
@@ -1001,6 +964,80 @@ class SettingsPage extends StatelessWidget {
   }
 }
 
+// ===== LOADING ANIMASI: pulse dots =====
+// Port dari desain selastingeorge/flutter_spinners (PulseDotsIndicator):
+// 3 dot pulsing sekuensial (wave cosine, phase offset 1/3) — terkurasi,
+// clean, dan tanpa dependensi package.
+class _PulseDots extends StatefulWidget {
+  final double size;
+  const _PulseDots({this.size = 80});
+
+  @override
+  State<_PulseDots> createState() => _PulseDotsState();
+}
+
+class _PulseDotsState extends State<_PulseDots> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    // 1200ms per siklus — sedikit lebih lambat dari default biar keliatan
+    _controller = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 1200))..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: widget.size,
+      height: widget.size / 4,
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (_, __) => CustomPaint(
+          painter: _PulseDotsPainter(t: _controller.value, color: cBiruVivid),
+        ),
+      ),
+    );
+  }
+}
+
+class _PulseDotsPainter extends CustomPainter {
+  final double t;
+  final Color color;
+  _PulseDotsPainter({required this.t, required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = color;
+    final radius = size.height * 0.35;
+    final cy = size.height / 2;
+    final spacing = size.width / 3;
+    for (int i = 0; i < 3; i++) {
+      // Tiap dot fase-nya di-offset 1/3 siklus (120 derajat)
+      final phase = (t - i / 3) * 2 * math.pi;
+      final wave = math.cos(phase);
+      final scale = (wave + 1) / 2; // 0 (kecil) .. 1 (penuh)
+      final dx = spacing * i + spacing / 2;
+      canvas.save();
+      canvas.translate(dx, cy);
+      canvas.scale(scale.clamp(0.05, 1.0), scale.clamp(0.05, 1.0));
+      canvas.drawCircle(Offset.zero, radius, paint);
+      canvas.restore();
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _PulseDotsPainter oldDelegate) =>
+      oldDelegate.t != t || oldDelegate.color != color;
+}
+
 // ===== ALUR IN-APP UPDATE (cek GitHub → dialog changelog → download → install) =====
 Future<void> _periksaUpdate(BuildContext context) async {
   final messenger = ScaffoldMessenger.of(context);
@@ -1011,9 +1048,8 @@ Future<void> _periksaUpdate(BuildContext context) async {
     builder: (_) => const AlertDialog(
       title: Text('Memeriksa pembaruan...'),
       content: SizedBox(
-        width: 28,
-        height: 28,
-        child: CircularProgressIndicator(strokeWidth: 2.5),
+        height: 48,
+        child: _PulseDots(size: 80),
       ),
     ),
   ));
@@ -1245,7 +1281,7 @@ class AboutPage extends StatelessWidget {
   static const _fitur = [
     'Menelusuri resep berdasarkan kategori (Simpel, Sayuran, Protein, Sehat)',
     'Pencarian resep secara langsung berdasarkan nama (real-time)',
-    'Filter hasil berdasarkan kategori, jumlah langkah, jumlah bahan, dan bahan tertentu',
+    'Filter hasil berdasarkan jumlah langkah, jumlah bahan, dan bahan tertentu',
     'Koleksi 100 resep lengkap dengan foto, bahan, dan langkah memasak',
     'Informasi versi aplikasi dan pemeriksaan pembaruan',
   ];

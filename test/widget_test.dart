@@ -46,6 +46,31 @@ void main() {
     expect(find.text('Tidak ada resep ditemukan'), findsOneWidget);
   });
 
+  testWidgets('filter chips berfungsi: dialog bahan tertentu tersaring', (tester) async {
+    await tester.pumpWidget(const AppResep());
+    await tester.tap(find.text('Search'));
+    await tester.pumpAndSettle();
+
+    // Chip "Bahan tertentu" -> dialog
+    await tester.tap(find.text('Bahan tertentu'));
+    await tester.pumpAndSettle();
+    expect(find.text('Tampilkan resep yang memuat bahan tertentu'), findsOneWidget);
+
+    // aktifkan filter bahan + isi "kangkung"
+    await tester.tap(find.text('Tampilkan resep yang memuat bahan tertentu'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).last, 'kangkung');
+    await tester.pump();
+
+    // terapkan -> hasil tersaring
+    await tester.tap(find.text('Terapkan'));
+    await tester.pumpAndSettle();
+    expect(find.text('Tumis Kangkung'), findsOneWidget);
+    expect(find.text('Tumis Kangkung Telur Orak-Arik'), findsOneWidget);
+    expect(find.text('Tempe Orek'), findsNothing);
+    expect(find.text('Bahan: kangkung'), findsOneWidget); // label chip aktif
+  });
+
   testWidgets('tentang aplikasi: navigasi + konten kelompok', (tester) async {
     await tester.pumpWidget(const AppResep());
 
