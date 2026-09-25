@@ -383,6 +383,9 @@ class SearchPage extends StatefulWidget {
 class _SearchPageState extends State<SearchPage> {
   final _ctrl = TextEditingController();
   String _query = '';
+  String _kategori = 'Semua';
+
+  static const _kategoris = ['Semua', 'Simpel', 'Sayuran', 'Protein', 'Sehat'];
 
   @override
   void dispose() {
@@ -398,7 +401,36 @@ class _SearchPageState extends State<SearchPage> {
     // cuma karena bahannya ada "telur ayam").
     return daftarResep
         .where((r) => r.nama.toLowerCase().contains(q))
+        .where((r) => _kategori == 'Semua' || r.kategori == _kategori)
         .toList();
+  }
+
+  // Chip filter kategori (Semua + 4 kategori)
+  Widget _chipFilter(String kategori) {
+    final aktif = _kategori == kategori;
+    return GestureDetector(
+      onTap: () => setState(() => _kategori = kategori),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        margin: const EdgeInsets.only(right: 8),
+        decoration: BoxDecoration(
+          color: aktif ? cBiruPekat : cPutih,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: aktif ? cBiruPekat : cBiruTerang, width: 1.2),
+          boxShadow: const [
+            BoxShadow(color: Color(0x0A000000), blurRadius: 4, offset: Offset(0, 2)),
+          ],
+        ),
+        child: Text(
+          kategori,
+          style: TextStyle(
+            color: aktif ? cPutih : cTeksMuted,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -437,6 +469,19 @@ class _SearchPageState extends State<SearchPage> {
                       ),
                     ),
                   ),
+                ],
+              ),
+            ),
+          ),
+          // Filter kategori
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: SizedBox(
+              height: 36,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: [
+                  for (final k in _kategoris) _chipFilter(k),
                 ],
               ),
             ),
@@ -665,7 +710,7 @@ Future<void> _periksaUpdate(BuildContext context) async {
   } on BelumRilisException {
     navigator.pop();
     messenger.showSnackBar(
-      const SnackBar(content: Text('Belum ada rilis di GitHub — kamu pakai versi terbaru.')),
+      const SnackBar(content: Text('Sudah versi terbaru — belum ada pembaruan.')),
     );
   } catch (e) {
     navigator.pop();

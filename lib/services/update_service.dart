@@ -44,7 +44,7 @@ class UpdateService {
       throw const BelumRilisException();
     }
     if (res.statusCode != 200) {
-      throw Exception('Tidak bisa menghubungi GitHub (status ${res.statusCode})');
+      throw Exception('Gagal memeriksa pembaruan (status ${res.statusCode})');
     }
     return parseRelease(jsonDecode(res.body));
   }
