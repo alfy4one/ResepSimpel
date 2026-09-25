@@ -671,6 +671,11 @@ Future<void> _periksaUpdate(BuildContext context) async {
     await navigator.push(
       MaterialPageRoute(builder: (_) => _DialogUpdate(info)),
     );
+  } on BelumRilisException {
+    navigator.pop();
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Belum ada rilis di GitHub — kamu pakai versi terbaru.')),
+    );
   } catch (e) {
     navigator.pop();
     messenger.showSnackBar(SnackBar(content: Text('Gagal memeriksa: $e')));
