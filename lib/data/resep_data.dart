@@ -153,7 +153,7 @@ final List<Resep> daftarResep = [
   ),
   Resep(
     nama: 'Tempe Tumis Kecap',
-    fotoPath: 'assets/resep_images/WebP Menu/tempe tumis kecap_result.webp',
+    fotoPath: 'assets/resep_images/WebP Menu/sayur Bening Bayam__result.webp',
     bahan: [
       '1 papan tempe',
       '3 siung bawang merah',
