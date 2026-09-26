@@ -169,7 +169,16 @@ class _HomePageState extends State<HomePage> {
                     color: cBiruTerang,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.restaurant, color: cBiruPekat, size: 22),
+                  // Logo ResepSimpel (menggantikan icon garpu-pisau, permintaan alf 2026-09-26)
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.asset(
+                      'assets/images/logo_resepsimpel.webp',
+                      width: 40,
+                      height: 40,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
                 ),
                 const SizedBox(width: 16),
                 const Expanded(
