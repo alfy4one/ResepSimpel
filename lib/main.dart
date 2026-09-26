@@ -6,6 +6,7 @@ import 'data/resep_data.dart';
 import 'models/resep.dart';
 import 'pages/kategori_list_page.dart';
 import 'pages/resep_detail_page.dart';
+import 'pages/hubungi_kami_page.dart';
 // In-app update: di web pakai stub, di Android/VM pakai versi io (download + install)
 import 'services/apk_installer_stub.dart'
     if (dart.library.io) 'services/apk_installer_io.dart';
@@ -971,7 +972,15 @@ class SettingsPage extends StatelessWidget {
               const SizedBox(height: 32),
               _labelSeksi('Bantuan & Informasi'),
               const SizedBox(height: 8),
-              _itemSettings(Icons.chat_bubble_outline, 'Hubungi Kami', trailing: _tombolOutline('Kirim Pesan')),
+              _itemSettings(
+                Icons.chat_bubble_outline,
+                'Hubungi Kami',
+                trailing: _tombolOutline('Kirim Pesan'),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const HubungiKamiPage()),
+                ),
+              ),
               const SizedBox(height: 8),
               _itemSettings(
                 Icons.person_outline,
