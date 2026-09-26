@@ -31,6 +31,22 @@ const Color cBiruPekat = Color(0xFF0D47A1); // teks utama/header/tombol/nav akti
 const Color cTeksUtama = cBiruPekat; // alias
 const Color cTeksMuted = Color(0xFF5E6C81); // hint/muted (kontras 4.8:1 di atas putih)
 
+/// Fallback foto: logo ResepSimpel di atas latar biru (ganti icon garpu-pisau,
+/// permintaan alf 2026-09-26). Dipakai di carousel, kategori, list, & detail
+/// ketika foto resep gagal load / belum ada.
+Widget _logoFallback(double size) {
+  return SizedBox(
+    width: size,
+    height: size,
+    child: Image.asset(
+      'assets/images/logo_resepsimpel.webp',
+      width: size,
+      height: size,
+      fit: BoxFit.contain,
+    ),
+  );
+}
+
 class AppResep extends StatelessWidget {
   const AppResep({super.key});
 
@@ -282,9 +298,9 @@ class _HomePageState extends State<HomePage> {
                                       resep.fotoPath!,
                                       fit: BoxFit.cover,
                                       errorBuilder: (context, error, stackTrace) =>
-                                          Icon(Icons.restaurant, size: 32, color: cPutih),
+                                          _logoFallback(32),
                                     )
-                                  : Icon(Icons.restaurant, size: 32, color: cPutih),
+                                  : _logoFallback(32),
                             ),
                           ],
                         ),
@@ -326,9 +342,6 @@ class _HomePageState extends State<HomePage> {
 // Kartu kategori bahan (foto real di atas + strip label di bawah).
 // Card full-width (1 kolom ditumpuk sejak koreksi alf 2026-09-26).
 Widget _kartuKategori(BuildContext context, String nama, IconData ikon, Color warnaFoto) {
-  // ikon di area foto: latar biru terang->ikon pekat, latar pucat->ikon vivid
-  final ikonFoto = warnaFoto == cBiruTerang ? cBiruPekat : cBiruVivid;
-
   // Hitung resep per kategori
   final resepList = daftarResep.where((r) => r.kategori == nama).toList();
   final jumlah = resepList.length;
@@ -373,9 +386,9 @@ Widget _kartuKategori(BuildContext context, String nama, IconData ikon, Color wa
                     width: double.infinity,
                     height: double.infinity,
                     errorBuilder: (context, error, stackTrace) =>
-                        Icon(Icons.restaurant, size: 28, color: ikonFoto),
+                        _logoFallback(28),
                   )
-                : Icon(Icons.restaurant, size: 28, color: ikonFoto),
+                : _logoFallback(28),
           ),
           Container(
             color: cLatar,
@@ -680,10 +693,10 @@ class _SearchPageState extends State<SearchPage> {
                         resep.fotoPath!,
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) =>
-                            const Icon(Icons.restaurant, size: 40, color: cBiruPekat),
+                            _logoFallback(40),
                       ),
                     )
-                  : const Icon(Icons.restaurant, size: 40, color: cBiruPekat),
+                  : _logoFallback(40),
             ),
             // Info resep
             Expanded(
@@ -1393,7 +1406,16 @@ class AboutPage extends StatelessWidget {
                     color: cBiruTerang,
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: const Icon(Icons.restaurant, color: cBiruPekat, size: 30),
+                  // Logo ResepSimpel (menggantikan icon garpu-pisau, permintaan alf 2026-09-26)
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Image.asset(
+                      'assets/images/logo_resepsimpel.webp',
+                      width: 56,
+                      height: 56,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 8),
                 const Text('ResepSimpel', style: TextStyle(color: cBiruPekat, fontSize: 20, fontWeight: FontWeight.w700)),

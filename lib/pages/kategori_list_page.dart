@@ -75,6 +75,7 @@ class KategoriListPage extends StatelessWidget {
               width: 120,
               height: 120,
               color: cBiruTerang,
+              // Fallback: logo ResepSimpel (ganti icon garpu-pisau, alf 2026-09-26)
               child: resep.fotoPath != null
                   ? Hero(
                       tag: 'resep-${resep.nama}',
@@ -82,10 +83,20 @@ class KategoriListPage extends StatelessWidget {
                         resep.fotoPath!,
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) =>
-                            const Icon(Icons.restaurant, size: 40, color: cBiruPekat),
+                            const Image(
+                              image: AssetImage('assets/images/logo_resepsimpel.webp'),
+                              width: 40,
+                              height: 40,
+                              fit: BoxFit.contain,
+                            ),
                       ),
                     )
-                  : const Icon(Icons.restaurant, size: 40, color: cBiruPekat),
+                  : const Image(
+                      image: AssetImage('assets/images/logo_resepsimpel.webp'),
+                      width: 40,
+                      height: 40,
+                      fit: BoxFit.contain,
+                    ),
             ),
             // Info resep
             Expanded(

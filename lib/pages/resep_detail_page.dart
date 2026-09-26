@@ -73,25 +73,41 @@ class ResepDetailPage extends StatelessWidget {
   }
 
   Widget _buildFotoResep(Resep resep) {
+    // Fallback: logo ResepSimpel (ganti icon garpu-pisau, alf 2026-09-26)
+    Widget fallback = Container(
+      color: cBiruTerang,
+      alignment: Alignment.center,
+      child: Container(
+        width: 112,
+        height: 112,
+        decoration: BoxDecoration(
+          color: cPutih,
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: const [
+            BoxShadow(color: Color(0x14000000), blurRadius: 12, offset: Offset(0, 4)),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(28),
+          child: const Image(
+            image: AssetImage('assets/images/logo_resepsimpel.webp'),
+            fit: BoxFit.cover,
+          ),
+        ),
+      ),
+    );
+
     if (resep.fotoPath != null) {
       return Hero(
         tag: 'resep-${resep.nama}',
         child: Image.asset(
           resep.fotoPath!,
           fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) => Container(
-            color: cBiruTerang,
-            alignment: Alignment.center,
-            child: const Icon(Icons.restaurant, size: 80, color: cBiruPekat),
-          ),
+          errorBuilder: (context, error, stackTrace) => fallback,
         ),
       );
     }
-    return Container(
-      color: cBiruTerang,
-      alignment: Alignment.center,
-      child: const Icon(Icons.restaurant, size: 80, color: cBiruPekat),
-    );
+    return fallback;
   }
 
   Widget _buildSection(String judul, List<String> items) {
