@@ -1147,9 +1147,11 @@ Future<void> _periksaUpdate(BuildContext context) async {
     messenger.showSnackBar(
       const SnackBar(content: Text('Sudah versi terbaru — belum ada pembaruan.')),
     );
-  } catch (e) {
+  } catch (_) {
     navigator.pop();
-    messenger.showSnackBar(SnackBar(content: Text('Gagal memeriksa: $e')));
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Tidak dapat terhubung ke server. Periksa koneksi internetmu.')),
+    );
   }
 }
 
