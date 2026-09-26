@@ -1420,7 +1420,7 @@ class AboutPage extends StatelessWidget {
                 const SizedBox(height: 8),
                 const Text('ResepSimpel', style: TextStyle(color: cBiruPekat, fontSize: 20, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 8),
-                const Text('v1.1', style: TextStyle(color: cTeksMuted, fontSize: 14)),
+                const Text('v1.0', style: TextStyle(color: cTeksMuted, fontSize: 14)),
               ],
             ),
           ),
