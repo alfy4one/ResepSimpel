@@ -111,8 +111,8 @@ class _HomePageState extends State<HomePage> {
       final next = (_currentPage + 1) % 3;
       _pageController.animateToPage(
         next,
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeInOut,
+        duration: const Duration(milliseconds: 800),
+        curve: Curves.easeInOutCubic,
       );
     });
   }
@@ -120,7 +120,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    _pageController = PageController();
+    _pageController = PageController(viewportFraction: 0.92);
     _restartTimer();
   }
 
