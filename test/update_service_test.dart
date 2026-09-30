@@ -32,24 +32,28 @@ void main() {
   });
 
   group('UpdateService.adaUpdate', () {
-    // versiSaatIni = 1.0.0
-    test('1.0.1 > 1.0.0 → ada update', () {
-      expect(UpdateService.adaUpdate(_info('1.0.1')), isTrue);
+    // Diuji relatif terhadap versiSaatIni yang aktif, bukan angka tetap,
+    // supaya test tetap valid saat versi aplikasi di-bump.
+    test('versi release > versiSaatIni → ada update', () {
+      expect(UpdateService.adaUpdate(_info(_nextAfter(UpdateService.versiSaatIni))), isTrue);
+      expect(UpdateService.adaUpdate(_info('99.0.0')), isTrue);
     });
 
-    test('2.0.0 > 1.0.0 → ada update', () {
-      expect(UpdateService.adaUpdate(_info('2.0.0')), isTrue);
+    test('versi release == versiSaatIni → tidak ada update', () {
+      expect(UpdateService.adaUpdate(_info(UpdateService.versiSaatIni)), isFalse);
     });
 
-    test('1.0.0 == 1.0.0 → tidak ada update', () {
-      expect(UpdateService.adaUpdate(_info('1.0.0')), isFalse);
-    });
-
-    test('1.0.0 < 1.1.0 → tidak ada update', () {
-      expect(UpdateService.adaUpdate(_info('1.0.0')), isFalse);
-      expect(UpdateService.adaUpdate(_info('0.9.9')), isFalse);
+    test('versi release < versiSaatIni → tidak ada update', () {
+      expect(UpdateService.adaUpdate(_info('0.0.1')), isFalse);
     });
   });
+}
+
+/// Versi satu tingkat lebih besar dari [v] (mis. 1.5.0 -> 1.5.1).
+String _nextAfter(String v) {
+  final p = v.split('.');
+  final last = int.parse(p.last) + 1;
+  return '${p[0]}.${p[1]}.$last';
 }
 
 InfoUpdate _info(String versi) =>
