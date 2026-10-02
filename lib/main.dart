@@ -7,6 +7,7 @@ import 'models/resep.dart';
 import 'pages/kategori_list_page.dart';
 import 'pages/resep_detail_page.dart';
 import 'pages/hubungi_kami_page.dart';
+import 'pages/dapur_pintar_page.dart';
 // In-app update: di web pakai stub, di Android/VM pakai versi io (download + install)
 import 'services/apk_installer_stub.dart'
     if (dart.library.io) 'services/apk_installer_io.dart';
@@ -53,7 +54,7 @@ class AppResep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'App Resep',
+      title: 'ResepSimpel',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         scaffoldBackgroundColor: cLatar,
@@ -307,6 +308,50 @@ class _HomePageState extends State<HomePage> {
                       ),
                       );
                     },
+                  ),
+                ),
+                const SizedBox(height: 32),
+                // Dapur Pintar (v1.1.0): cari resep dari bahan yang ada di dapur
+                GestureDetector(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const DapurPintarPage()),
+                  ),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: cBiruPekat,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.kitchen, color: cPutih, size: 24),
+                        SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Dapur Pintar',
+                                style: TextStyle(
+                                  color: cPutih,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                'Mau masak? Pilih bahan yang ada di dapurmu',
+                                style: TextStyle(color: cBiruTerang, fontSize: 12),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(Icons.chevron_right, color: cPutih),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 32),

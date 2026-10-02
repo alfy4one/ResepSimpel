@@ -28,7 +28,7 @@ class InfoUpdate {
 class UpdateService {
   static const repoOwner = 'alfy4one';
   static const repoName = 'ResepSimpel';
-  static const versiSaatIni = '1.0.0';
+  static const versiSaatIni = '1.1.0';
 
   static Future<InfoUpdate> cekUpdate() async {
     final uri =
